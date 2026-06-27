@@ -1,0 +1,381 @@
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { lastValueFrom } from 'rxjs';
+import {
+  GenerationService,
+  ImageGenerationRequest,
+  ImageEditRequest,
+  GenerationResponse,
+} from '../../services/generation.service';
+import { SettingsService } from '../../services/settings.service';
+import { AlertService } from '../../services/alert.service';
+
+@Component({
+  selector: 'app-image',
+  standalone: true,
+  imports: [CommonModule, FormsModule, TranslateModule],
+  templateUrl: './image.component.html',
+  styleUrls: ['./image.component.scss'],
+})
+export class ImageComponent implements OnInit, OnDestroy {
+  characterDescription = '';
+  faceWear = '';
+  bodyWear = '';
+  footWear = '';
+  additionalDescription = '';
+
+  negativePrompt = '';
+  size = '1024*1024';
+  seed: number | null = null;
+
+  finalPrompt = signal('');
+
+  activeTab = 'generate';
+
+  imageUrl = '';
+  editPrompt = '';
+
+  result = signal<GenerationResponse | null>(null);
+  loading = signal(false);
+  imageLoading = signal(false);
+
+  constructor(
+    private generationService: GenerationService,
+    private settingService: SettingsService,
+    private router: Router,
+    private translate: TranslateService,
+    private alertService: AlertService,
+  ) {}
+
+  ngOnInit() {
+    this.loadFormData();
+    this.translate.onLangChange.subscribe(() => {
+      this.updateFinalPrompt();
+    });
+    if (!this.finalPrompt() && this.hasInputData()) {
+      this.updateFinalPrompt();
+    }
+  }
+
+  ngOnDestroy() {
+    this.saveFormData();
+  }
+
+  setActiveTab(tab: 'generate' | 'edit') {
+    this.activeTab = tab;
+    this.saveFormData();
+    this.updateFinalPrompt();
+  }
+
+  editImage() {
+    if (!this.imageUrl.trim()) {
+      this.alertService.showErrorWithKeys('ALERTS.ERROR', 'ALERTS.PROVIDE_IMAGE_URL');
+      return;
+    }
+
+    const prompt = this.editPrompt.trim();
+    if (!prompt.trim()) {
+      this.alertService.showErrorWithKeys('ALERTS.ERROR', 'ALERTS.PROVIDE_EDIT_PROMPT');
+      return;
+    }
+
+    this.loading.set(true);
+    this.imageLoading.set(true);
+
+    const request: ImageEditRequest = {
+      image_url: this.imageUrl,
+      prompt: prompt,
+      task_id: this.generationService.generateTaskId('img_edit'),
+      model_type: this.settingService.getActiveModel(),
+      negative_prompt: this.negativePrompt || undefined,
+      size: this.size,
+      seed: this.seed || undefined,
+    };
+
+    this.generationService.editImage(request).subscribe({
+      next: (result) => {
+        this.result.set(result);
+        this.loading.set(false);
+        if (result.url && !result.error_info) {
+          this.storeGenerationToHistory(result, prompt);
+        }
+      },
+      error: (error) => {
+        this.result.set({
+          url: '',
+          task_id: request.task_id,
+          error_info: error.message,
+        });
+        this.loading.set(false);
+        this.imageLoading.set(false);
+      },
+    });
+  }
+
+  private hasInputData(): boolean {
+    return !!(
+      this.characterDescription.trim() ||
+      this.faceWear.trim() ||
+      this.bodyWear.trim() ||
+      this.footWear.trim() ||
+      this.additionalDescription.trim()
+    );
+  }
+
+  private saveFormData() {
+    const formData = {
+      characterDescription: this.characterDescription,
+      faceWear: this.faceWear,
+      bodyWear: this.bodyWear,
+      footWear: this.footWear,
+      additionalDescription: this.additionalDescription,
+      negativePrompt: this.negativePrompt,
+      size: this.size,
+      seed: this.seed,
+      finalPrompt: this.finalPrompt(),
+      activeTab: this.activeTab,
+      imageUrl: this.imageUrl,
+      editPrompt: this.editPrompt,
+    };
+    localStorage.setItem('pixelda_image_form', JSON.stringify(formData));
+  }
+
+  private loadFormData() {
+    const savedData = localStorage.getItem('pixelda_image_form');
+    if (savedData) {
+      try {
+        const formData = JSON.parse(savedData);
+        this.characterDescription = formData.characterDescription || '';
+        this.faceWear = formData.faceWear || '';
+        this.bodyWear = formData.bodyWear || '';
+        this.footWear = formData.footWear || '';
+        this.additionalDescription = formData.additionalDescription || '';
+        this.negativePrompt = formData.negativePrompt || '';
+        this.size = formData.size || '1024*1024';
+        this.seed = formData.seed;
+        this.finalPrompt.set(formData.finalPrompt || '');
+        this.activeTab = formData.activeTab || 'generate';
+        this.imageUrl = formData.imageUrl || '';
+        this.editPrompt = formData.editPrompt || '';
+      } catch (error) {
+        localStorage.removeItem('pixelda_image_form');
+      }
+    }
+  }
+
+  onFormChange(updateFinalPrompt: boolean = true) {
+    if (updateFinalPrompt) {
+      this.updateFinalPrompt();
+    }
+    this.saveFormData();
+  }
+
+  private updateFinalPrompt() {
+    if (this.activeTab === 'generate') {
+      this.buildPrompt().then((prompt) => this.finalPrompt.set(prompt));
+    } else if (this.activeTab === 'edit') {
+      this.finalPrompt.set(this.editPrompt);
+    }
+  }
+
+  onFinalPromptChange() {
+    this.saveFormData();
+  }
+
+  onImageUrlChange() {
+    this.saveFormData();
+  }
+
+  onThumbnailError() {}
+
+  buildPrompt(): Promise<string> {
+    const parts: string[] = [];
+
+    if (this.characterDescription.trim()) {
+      parts.push(this.characterDescription.trim());
+    }
+
+    const promises: Promise<string>[] = [];
+
+    if (this.faceWear.trim()) {
+      promises.push(
+        lastValueFrom(
+          this.translate.get('IMAGE_GENERATION.WEARING_ON_FACE', { item: this.faceWear.trim() }),
+        ),
+      );
+    }
+
+    if (this.bodyWear.trim()) {
+      promises.push(
+        lastValueFrom(
+          this.translate.get('IMAGE_GENERATION.WEARING_ON_BODY', { item: this.bodyWear.trim() }),
+        ),
+      );
+    }
+
+    if (this.footWear.trim()) {
+      promises.push(
+        lastValueFrom(
+          this.translate.get('IMAGE_GENERATION.WEARING_ON_FEET', { item: this.footWear.trim() }),
+        ),
+      );
+    }
+
+    if (this.additionalDescription.trim()) {
+      parts.push(this.additionalDescription.trim());
+    }
+
+    return Promise.all(promises).then((translatedParts) => {
+      translatedParts.forEach((part) => parts.push(part));
+      return lastValueFrom(
+        this.translate.get('IMAGE_GENERATION.PROMPT_TEMPLATE', { description: parts.join(', ') }),
+      );
+    });
+  }
+
+  async generateImage() {
+    let prompt = this.finalPrompt().trim();
+    if (!prompt) {
+      prompt = await this.buildPrompt();
+    }
+
+    if (!prompt.trim()) {
+      this.alertService.showErrorWithKeys('ALERTS.ERROR', 'ALERTS.PROVIDE_CHARACTER_DESC');
+      return;
+    }
+
+    this.loading.set(true);
+    this.imageLoading.set(true);
+
+    const modelType = this.settingService.getActiveModel();
+    const request: ImageGenerationRequest = {
+      prompt,
+      negative_prompt: this.negativePrompt || undefined,
+      size: this.size,
+      seed: this.seed || undefined,
+      task_id: this.generationService.generateTaskId('img'),
+      model_type: modelType,
+    };
+
+    // Inject custom API config if model type is custom
+    if (modelType === 'custom') {
+      const customConfig = this.settingService.getCustomImageConfig();
+      request.custom_base_url = customConfig.baseUrl;
+      request.custom_api_key = customConfig.apiKey;
+      request.custom_model = customConfig.model;
+      request.api_key = customConfig.apiKey;
+    }
+
+    this.generationService.generateImage(request).subscribe({
+      next: (result) => {
+        this.result.set(result);
+        this.loading.set(false);
+        if (result.url && !result.error_info) {
+          this.storeGenerationToHistory(result, prompt);
+        }
+      },
+      error: (error) => {
+        this.result.set({
+          url: '',
+          task_id: request.task_id,
+          error_info: error.message,
+        });
+        this.loading.set(false);
+        this.imageLoading.set(false);
+      },
+    });
+  }
+
+  clearForm() {
+    this.characterDescription = '';
+    this.faceWear = '';
+    this.bodyWear = '';
+    this.footWear = '';
+    this.additionalDescription = '';
+    this.negativePrompt = '';
+    this.seed = null;
+    this.finalPrompt.set('');
+    this.activeTab = 'generate';
+    this.imageUrl = '';
+    this.editPrompt = '';
+    this.result.set(null);
+    localStorage.removeItem('pixelda_image_form');
+  }
+
+  regenerateImage() {
+    if (this.result() && !this.result()!.error_info) {
+      this.generateImage();
+    }
+  }
+
+  navigateToAnimation() {
+    if (this.result() && this.result()!.url) {
+      localStorage.setItem('pixelda_animation_image_url', this.result()!.url);
+      this.router.navigate(['/generate/animation']);
+    }
+  }
+
+  editGeneratedImage() {
+    if (this.result() && this.result()!.url) {
+      const imageUrl = this.result()!.url;
+
+      this.result.set(null);
+      this.imageLoading.set(false);
+
+      this.setActiveTab('edit');
+      this.imageUrl = imageUrl;
+      this.editPrompt = '';
+      this.saveFormData();
+    }
+  }
+
+  onImageLoad() {
+    this.imageLoading.set(false);
+  }
+
+  onImageError() {
+    this.imageLoading.set(false);
+  }
+
+  private storeGenerationToHistory(result: GenerationResponse, prompt: string) {
+    const historyItem = {
+      id: result.task_id || `img_${Date.now()}`,
+      type: 'image',
+      url: result.url,
+      prompt: prompt,
+      timestamp: new Date().toISOString(),
+      size: this.size,
+      seed: this.seed,
+    };
+
+    const existingHistory = localStorage.getItem('pixelda_generation_history');
+    let history: any[] = [];
+
+    if (existingHistory) {
+      try {
+        history = JSON.parse(existingHistory);
+      } catch (error) {
+        history = [];
+      }
+    }
+
+    const now = new Date();
+    const maxAge = 24 * 60 * 60 * 1000;
+    history = history.filter((item) => {
+      const itemDate = new Date(item.timestamp);
+      const age = now.getTime() - itemDate.getTime();
+      return age <= maxAge;
+    });
+
+    history.unshift(historyItem);
+
+    if (history.length > 50) {
+      history = history.slice(0, 50);
+    }
+
+    localStorage.setItem('pixelda_generation_history', JSON.stringify(history));
+  }
+}
