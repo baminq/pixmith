@@ -242,7 +242,7 @@ Contributions welcome. Please:
 
 Released under the [MIT License](LICENSE).
 
-Copyright (c) 2026 [baminq](https://github.com/baminq) · [PHAM BA MINH](https://github.com/baminq)
+Copyright (c) 2026 [baminq](https://github.com/baminq)
 
 ## 🙏 Acknowledgments
 
