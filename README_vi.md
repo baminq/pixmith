@@ -15,7 +15,7 @@
   <a href="./README.md">🇬🇧 English</a> · 🇻🇳 Tiếng Việt
 </p>
 
-**Pixmith** là một xưởng sáng tạo dùng AI để tạo tài nguyên game pixel-art — hình ảnh, animation, sprite sheet, và nhạc chiptune. Backend dùng FastAPI, frontend dùng Angular, hỗ trợ nhiều nhà cung cấp AI (Tongyi/DashScope, Doubao/Volcengine) và bất kỳ endpoint nào tương thích OpenAI.
+**Pixmith** là xưởng AI để tạo tài nguyên game pixel-art — hình ảnh, animation, sprite sheet và nhạc chiptune. Backend dùng FastAPI, frontend dùng Angular; kết nối bất kỳ API **tương thích OpenAI** nào (OpenAI, OpenRouter, Groq, SiliconFlow, …).
 
 ## 📋 Mục lục
 
@@ -25,7 +25,7 @@
 - [Cài đặt](#-cài-đặt)
 - [Cấu hình](#%EF%B8%8F-cấu-hình)
 - [Sử dụng](#-sử-dụng)
-- [Các model AI hỗ trợ](#-các-model-ai-hỗ-trợ)
+- [API được hỗ trợ](#-api-được-hỗ-trợ)
 - [Cấu trúc dự án](#-cấu-trúc-dự-án)
 - [Đóng góp](#-đóng-góp)
 - [Giấy phép](#-giấy-phép)
@@ -39,8 +39,8 @@
 - 🧹 **Xóa nền** *(beta)* — Loại bỏ background bằng `rembg`
 - 🎵 **Tạo nhạc** — Soạn BGM gốc, có tùy chọn biến tấu chiptune
 - 💾 **Cache & lịch sử** — Lưu cache asset đã tạo, có thể duyệt lại
-- ⚙️ **Đa nhà cung cấp** — Chuyển đổi giữa Tongyi, Doubao, hoặc bất kỳ API OpenAI-compatible nào
-- 🌐 **Đa ngôn ngữ** — Giao diện hỗ trợ nhiều ngôn ngữ
+- ⚙️ **Tương thích OpenAI** — Cắm bất kỳ provider nào nói API OpenAI
+- 🌐 **Đa ngôn ngữ** — Giao diện tiếng Anh, Việt, Trung
 
 ## 🏗️ Kiến trúc
 
@@ -49,16 +49,15 @@
 │  Angular 20 UI  │ ──────────────► │  FastAPI Server  │
 └─────────────────┘                 └────────┬─────────┘
                                              │
-                          ┌──────────────────┼──────────────────┐
-                          ▼                  ▼                  ▼
-                  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-                  │   Tongyi     │  │   Doubao     │  │   Custom     │
-                  │  (DashScope) │  │ (Volcengine) │  │  (OpenAI-c.) │
-                  └──────────────┘  └──────────────┘  └──────────────┘
+                                             ▼
+                                  ┌──────────────────────┐
+                                  │  OpenAI-compatible   │
+                                  │  API (bất kỳ)        │
+                                  └──────────────────────┘
 ```
 
-- **Backend** — FastAPI xử lý API, định tuyến model AI, và xử lý media.
-- **Frontend** — Angular SPA cho giao diện người dùng.
+- **Backend** — FastAPI định tuyến API, gọi model và xử lý media.
+- **Frontend** — Angular SPA; API key và endpoint cấu hình trong **Settings** (localStorage trình duyệt).
 - **Cache** — Lưu asset đã tạo trên filesystem local.
 - **Logs** — Log server xoay vòng theo ngày (`logs/`).
 
@@ -67,7 +66,7 @@
 - **Python** 3.13+
 - **Node.js** 22+
 - **Angular CLI** 20+
-- API key của ít nhất một nhà cung cấp được hỗ trợ
+- API key từ bất kỳ nhà cung cấp tương thích OpenAI
 
 ## 🚀 Cài đặt
 
@@ -90,7 +89,7 @@ venv\Scripts\activate            # Windows
 pip install -r requirements.txt
 
 cp .env.example .env
-# Mở .env và điền API key
+# Tùy chọn: điền default server trong .env
 
 python app.py
 ```
@@ -107,9 +106,25 @@ npm start
 
 Giao diện chạy tại `http://localhost:4200`.
 
+Mở **Settings** trong UI và thêm base URL, API key, model tương thích OpenAI cho ảnh / nhạc / video.
+
 ## ⚙️ Cấu hình
 
-Toàn bộ cấu hình server nằm ở `projects/server/.env`. Xem `.env.example` để biết danh sách đầy đủ.
+### UI Settings (chính)
+
+Credentials được lưu trong trình duyệt (localStorage) và gửi kèm mỗi request sinh. Cấu hình riêng cho:
+
+| Slot | Mục đích |
+|---|---|
+| **API ảnh** | Text-to-image |
+| **API nhạc** | Sinh nhạc qua chat/completion |
+| **API video** | Image-to-video (animation) |
+
+Mỗi slot cần: tên provider, **Base URL**, **API key**, và **Model**.
+
+### Server `.env` (default tùy chọn)
+
+Toàn bộ cấu hình server nằm ở `projects/server/.env`. Xem `.env.example`.
 
 | Biến | Mặc định | Mô tả |
 |---|---|---|
@@ -117,11 +132,9 @@ Toàn bộ cấu hình server nằm ở `projects/server/.env`. Xem `.env.exampl
 | `PORT` | `8000` | Port server |
 | `LOG_LEVEL` | `INFO` | Mức log |
 | `ALLOWED_ORIGINS` | `http://localhost:4200` | CORS origins (phân cách bằng dấu phẩy) |
-| `TONGYI_API_KEY` | *(trống)* | API key DashScope |
-| `DOUBAO_API_KEY` | *(trống)* | API key Volcengine |
-| `CUSTOM_BASE_URL` | *(trống)* | URL endpoint OpenAI-compatible |
-| `CUSTOM_API_KEY` | *(trống)* | API key cho endpoint custom |
-| `CUSTOM_MODEL` | *(trống)* | Tên model mặc định cho endpoint custom |
+| `CUSTOM_BASE_URL` | *(trống)* | Endpoint OpenAI-compatible mặc định (tùy chọn) |
+| `CUSTOM_API_KEY` | *(trống)* | API key mặc định (tùy chọn) |
+| `CUSTOM_MODEL` | *(trống)* | Tên model mặc định (tùy chọn) |
 | `CACHE_MAX_AGE_DAYS` | `7` | Ngưỡng tự dọn cache |
 
 > **Không bao giờ commit `.env` chứa key thật.** Dùng `.env.example` làm template.
@@ -133,11 +146,13 @@ Toàn bộ cấu hình server nằm ở `projects/server/.env`. Xem `.env.exampl
 ```bash
 curl -X POST http://localhost:8000/generate/image \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: $TONGYI_API_KEY" \
   -d '{
     "prompt": "Ninja pixel-art mặc đồ đen, nhìn chính diện toàn thân, nền xám",
-    "model_type": "tongyi",
-    "size": "1024*1024"
+    "model_type": "custom",
+    "size": "1024*1024",
+    "custom_base_url": "https://api.openai.com/v1",
+    "custom_api_key": "sk-...",
+    "custom_model": "dall-e-3"
   }'
 ```
 
@@ -146,11 +161,13 @@ curl -X POST http://localhost:8000/generate/image \
 ```bash
 curl -X POST http://localhost:8000/generate/video \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: $DOUBAO_API_KEY" \
   -d '{
     "prompt": "Ninja thực hiện đòn chém",
     "base_image_url": "https://example.com/ninja.png",
-    "model_type": "doubao"
+    "model_type": "custom",
+    "custom_base_url": "https://api.example.com/v1",
+    "custom_api_key": "sk-...",
+    "custom_model": "your-i2v-model"
   }'
 ```
 
@@ -159,31 +176,32 @@ curl -X POST http://localhost:8000/generate/video \
 ```bash
 curl -X POST http://localhost:8000/generate/music \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: $TONGYI_API_KEY" \
   -d '{
     "prompt": "Nhạc chiptune 8-bit vui tươi cho game platformer cuộn ngang",
     "duration": 30,
     "genre": "chiptune",
-    "model_type": "tongyi"
+    "model_type": "custom",
+    "custom_base_url": "https://api.openai.com/v1",
+    "custom_api_key": "sk-...",
+    "custom_model": "gpt-4o"
   }'
 ```
 
 Tài liệu API đầy đủ tại `http://localhost:8000/docs` sau khi khởi động server.
 
-## 🤖 Các model AI hỗ trợ
+## 🤖 API được hỗ trợ
 
-| Khả năng | Nhà cung cấp | Model mặc định |
+Pixmith gọi bất kỳ endpoint nào triển khai bề mặt tương thích OpenAI cho từng tác vụ:
+
+| Khả năng | Dạng endpoint điển hình | Ví dụ model |
 |---|---|---|
-| Tạo ảnh | Tongyi | `wan2.5-t2i-preview` |
-| Tạo ảnh | Doubao | `doubao-seedream-4-0-250828` |
-| Tạo ảnh | Custom | `dall-e-3` *(hoặc bất kỳ model OpenAI-compatible)* |
-| Chỉnh sửa ảnh | Tongyi | `wanx2.1-imageedit` |
-| Tạo video | Tongyi | `wan2.5-i2v-preview` |
-| Tạo video | Doubao | `doubao-seedance-1-0-pro-250528` |
-| Nhạc (chat-based) | Tongyi | `qwen-plus` |
-| Nhạc (chat-based) | Doubao | `doubao-seed-1-6-251015` |
+| Tạo ảnh | `POST /images/generations` | `dall-e-3`, model ảnh của provider |
+| Video / animation | API image-to-video (adapter OpenAI-compatible) | Model I2V của provider |
+| Nhạc (chat-based) | `POST /chat/completions` | `gpt-4o`, `gpt-4o-mini`, model chat khác |
 
-Để dùng nhà cung cấp custom, set `model_type: "custom"` và truyền `custom_base_url`, `custom_api_key`, `custom_model` trong request body.
+Đặt `model_type: "custom"` và truyền `custom_base_url`, `custom_api_key`, `custom_model` trong request body (UI tự làm từ Settings).
+
+Tương thích **OpenAI**, **OpenRouter**, **Groq**, **SiliconFlow**, và gateway tự host expose API OpenAI-compatible.
 
 ## 📁 Cấu trúc dự án
 
@@ -195,19 +213,19 @@ pixmith/
 │   │   ├── defs.py          # Pydantic schemas + constants
 │   │   ├── routers/         # HTTP endpoints
 │   │   └── services/
-│   │       ├── gen_models/  # Adapter cho từng nhà cung cấp AI
-│   │       │   ├── tongyi/
-│   │       │   ├── doubao/
-│   │       │   └── custom/
-│   │       └── utils/       # Helper cho frame, ảnh, nhạc, path
+│   │       ├── gen_models/  # Adapter nhà cung cấp AI
+│   │       │   └── custom/  # Client OpenAI-compatible
+│   │       └── utils/       # Helper frame, ảnh, nhạc, path
 │   └── ui/                  # Angular 20 frontend
 │       └── src/app/
 │           ├── components/
 │           ├── services/
 │           └── interceptors/
+├── assets/                  # Screenshot / intro docs
 ├── cache/                   # Asset đã tạo (gitignored)
 ├── logs/                    # Log server (gitignored)
-├── assets/                  # Asset cho docs (screenshot, v.v.)
+├── scripts/                 # Script tiện ích (ví dụ sinh logo)
+├── LICENSE                  # MIT
 └── README.md
 ```
 
@@ -224,10 +242,11 @@ Mọi đóng góp đều được chào đón. Vui lòng:
 
 Phát hành dưới [MIT License](LICENSE).
 
+Copyright (c) 2026 [baminq](https://github.com/baminq) · [PHAM BA MINH](https://github.com/baminq)
+
 ## 🙏 Cảm ơn
 
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [Angular](https://angular.dev/)
-- [DashScope](https://dashscope.console.aliyun.com/) (Tongyi)
-- [Volcengine](https://www.volcengine.com/) (Doubao)
 - [rembg](https://github.com/danielgatis/rembg)
+- [music21](https://web.mit.edu/music21/) / [symusic](https://github.com/Yikai-Liao/symusic)

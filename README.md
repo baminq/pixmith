@@ -15,7 +15,7 @@
   🇬🇧 English · <a href="./README_vi.md">🇻🇳 Tiếng Việt</a>
 </p>
 
-**Pixmith** is an AI-powered workshop for crafting pixel-art game assets — images, animations, sprite sheets, and chiptune music. Built with a FastAPI backend and Angular frontend, it supports multiple AI providers (Tongyi/DashScope, Doubao/Volcengine) and any OpenAI-compatible endpoint.
+**Pixmith** is an AI-powered workshop for crafting pixel-art game assets — images, animations, sprite sheets, and chiptune music. Built with a FastAPI backend and Angular frontend, it connects to any **OpenAI-compatible** API (OpenAI, OpenRouter, Groq, SiliconFlow, and more).
 
 ## 📋 Table of Contents
 
@@ -25,7 +25,7 @@
 - [Installation](#-installation)
 - [Configuration](#%EF%B8%8F-configuration)
 - [Usage](#-usage)
-- [Supported AI Models](#-supported-ai-models)
+- [Supported APIs](#-supported-apis)
 - [Project Structure](#-project-structure)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -39,8 +39,8 @@
 - 🧹 **Background Removal** *(beta)* — Strip backgrounds via `rembg`
 - 🎵 **Music Generation** — Compose original BGM with optional chiptune variant
 - 💾 **Caching & History** — Persistent cache of generated assets with browseable history
-- ⚙️ **Multi-provider** — Switch between Tongyi, Doubao, or any custom OpenAI-compatible API
-- 🌐 **i18n** — UI available in multiple languages
+- ⚙️ **OpenAI-compatible** — Plug in any provider that speaks the OpenAI API
+- 🌐 **i18n** — UI available in English, Vietnamese, and Chinese
 
 ## 🏗️ Architecture
 
@@ -49,16 +49,15 @@
 │  Angular 20 UI  │ ──────────────► │  FastAPI Server  │
 └─────────────────┘                 └────────┬─────────┘
                                              │
-                          ┌──────────────────┼──────────────────┐
-                          ▼                  ▼                  ▼
-                  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-                  │   Tongyi     │  │   Doubao     │  │   Custom     │
-                  │  (DashScope) │  │ (Volcengine) │  │  (OpenAI-c.) │
-                  └──────────────┘  └──────────────┘  └──────────────┘
+                                             ▼
+                                  ┌──────────────────────┐
+                                  │  OpenAI-compatible   │
+                                  │  API (any provider)  │
+                                  └──────────────────────┘
 ```
 
-- **Backend** — FastAPI handles API, AI model routing, and media processing.
-- **Frontend** — Angular SPA for the user interface.
+- **Backend** — FastAPI handles API routing, model calls, and media processing.
+- **Frontend** — Angular SPA; API keys and endpoints are configured in **Settings** (browser localStorage).
 - **Cache** — Local filesystem stores generated images, frames, and music.
 - **Logs** — Daily-rotated server logs (`logs/`).
 
@@ -67,7 +66,7 @@
 - **Python** 3.13+
 - **Node.js** 22+
 - **Angular CLI** 20+
-- An API key from at least one supported provider
+- An API key from any OpenAI-compatible provider
 
 ## 🚀 Installation
 
@@ -90,7 +89,7 @@ venv\Scripts\activate            # Windows
 pip install -r requirements.txt
 
 cp .env.example .env
-# Edit .env and add your API key(s)
+# Optional: set server defaults in .env
 
 python app.py
 ```
@@ -107,9 +106,25 @@ npm start
 
 UI available at `http://localhost:4200`.
 
+Open **Settings** in the UI and add your OpenAI-compatible base URL, API key, and model for image / music / video.
+
 ## ⚙️ Configuration
 
-All server configuration lives in `projects/server/.env`. See `.env.example` for the full list.
+### UI Settings (primary)
+
+API credentials are stored in the browser (localStorage) and sent with each generation request. Configure separately for:
+
+| Slot | Purpose |
+|---|---|
+| **Image API** | Text-to-image generation |
+| **Music API** | Chat/completion-based music generation |
+| **Video API** | Image-to-video animation |
+
+Each slot needs: provider name, **Base URL**, **API key**, and **Model**.
+
+### Server `.env` (optional defaults)
+
+All server configuration lives in `projects/server/.env`. See `.env.example`.
 
 | Variable | Default | Description |
 |---|---|---|
@@ -117,11 +132,9 @@ All server configuration lives in `projects/server/.env`. See `.env.example` for
 | `PORT` | `8000` | Server port |
 | `LOG_LEVEL` | `INFO` | Logging level |
 | `ALLOWED_ORIGINS` | `http://localhost:4200` | Comma-separated CORS origins |
-| `TONGYI_API_KEY` | *(empty)* | DashScope API key |
-| `DOUBAO_API_KEY` | *(empty)* | Volcengine API key |
-| `CUSTOM_BASE_URL` | *(empty)* | OpenAI-compatible endpoint URL |
-| `CUSTOM_API_KEY` | *(empty)* | API key for custom endpoint |
-| `CUSTOM_MODEL` | *(empty)* | Default model name for custom endpoint |
+| `CUSTOM_BASE_URL` | *(empty)* | Optional default OpenAI-compatible endpoint |
+| `CUSTOM_API_KEY` | *(empty)* | Optional default API key |
+| `CUSTOM_MODEL` | *(empty)* | Optional default model name |
 | `CACHE_MAX_AGE_DAYS` | `7` | Auto-cleanup threshold for cached files |
 
 > **Never commit `.env` with real keys.** Use `.env.example` as a template.
@@ -133,11 +146,13 @@ All server configuration lives in `projects/server/.env`. See `.env.example` for
 ```bash
 curl -X POST http://localhost:8000/generate/image \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: $TONGYI_API_KEY" \
   -d '{
     "prompt": "A pixel-art ninja in black gear, full-body front view, gray background",
-    "model_type": "tongyi",
-    "size": "1024*1024"
+    "model_type": "custom",
+    "size": "1024*1024",
+    "custom_base_url": "https://api.openai.com/v1",
+    "custom_api_key": "sk-...",
+    "custom_model": "dall-e-3"
   }'
 ```
 
@@ -146,11 +161,13 @@ curl -X POST http://localhost:8000/generate/image \
 ```bash
 curl -X POST http://localhost:8000/generate/video \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: $DOUBAO_API_KEY" \
   -d '{
     "prompt": "The ninja performs a slashing attack",
     "base_image_url": "https://example.com/ninja.png",
-    "model_type": "doubao"
+    "model_type": "custom",
+    "custom_base_url": "https://api.example.com/v1",
+    "custom_api_key": "sk-...",
+    "custom_model": "your-i2v-model"
   }'
 ```
 
@@ -159,31 +176,32 @@ curl -X POST http://localhost:8000/generate/video \
 ```bash
 curl -X POST http://localhost:8000/generate/music \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: $TONGYI_API_KEY" \
   -d '{
     "prompt": "Cheerful 8-bit chiptune for a side-scrolling platformer",
     "duration": 30,
     "genre": "chiptune",
-    "model_type": "tongyi"
+    "model_type": "custom",
+    "custom_base_url": "https://api.openai.com/v1",
+    "custom_api_key": "sk-...",
+    "custom_model": "gpt-4o"
   }'
 ```
 
 Full API docs available at `http://localhost:8000/docs` after starting the server.
 
-## 🤖 Supported AI Models
+## 🤖 Supported APIs
 
-| Capability | Provider | Default Model |
+Pixmith talks to any endpoint that implements the OpenAI-compatible surface used for the task:
+
+| Capability | Typical endpoint shape | Example models |
 |---|---|---|
-| Image generation | Tongyi | `wan2.5-t2i-preview` |
-| Image generation | Doubao | `doubao-seedream-4-0-250828` |
-| Image generation | Custom | `dall-e-3` *(or any OpenAI-compatible)* |
-| Image editing | Tongyi | `wanx2.1-imageedit` |
-| Video generation | Tongyi | `wan2.5-i2v-preview` |
-| Video generation | Doubao | `doubao-seedance-1-0-pro-250528` |
-| Music (chat-based) | Tongyi | `qwen-plus` |
-| Music (chat-based) | Doubao | `doubao-seed-1-6-251015` |
+| Image generation | `POST /images/generations` | `dall-e-3`, provider-specific image models |
+| Video / animation | Provider image-to-video API (OpenAI-compatible adapter) | Provider-specific I2V models |
+| Music (chat-based) | `POST /chat/completions` | `gpt-4o`, `gpt-4o-mini`, other chat models |
 
-To use a custom provider, set `model_type: "custom"` and provide `custom_base_url`, `custom_api_key`, `custom_model` in the request body.
+Set `model_type: "custom"` and pass `custom_base_url`, `custom_api_key`, and `custom_model` in the request body (the UI does this automatically from Settings).
+
+Works with providers such as **OpenAI**, **OpenRouter**, **Groq**, **SiliconFlow**, and self-hosted gateways that expose an OpenAI-compatible API.
 
 ## 📁 Project Structure
 
@@ -196,18 +214,18 @@ pixmith/
 │   │   ├── routers/         # HTTP endpoints
 │   │   └── services/
 │   │       ├── gen_models/  # AI provider adapters
-│   │       │   ├── tongyi/
-│   │       │   ├── doubao/
-│   │       │   └── custom/
+│   │       │   └── custom/  # OpenAI-compatible client
 │   │       └── utils/       # Frame, image, music, path helpers
 │   └── ui/                  # Angular 20 frontend
 │       └── src/app/
 │           ├── components/
 │           ├── services/
 │           └── interceptors/
+├── assets/                  # Docs / intro screenshots
 ├── cache/                   # Generated assets (gitignored)
 ├── logs/                    # Server logs (gitignored)
-├── assets/                  # Docs assets (screenshots, etc.)
+├── scripts/                 # Utility scripts (e.g. logo generation)
+├── LICENSE                  # MIT
 └── README.md
 ```
 
@@ -224,10 +242,11 @@ Contributions welcome. Please:
 
 Released under the [MIT License](LICENSE).
 
+Copyright (c) 2026 [baminq](https://github.com/baminq) · [PHAM BA MINH](https://github.com/baminq)
+
 ## 🙏 Acknowledgments
 
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [Angular](https://angular.dev/)
-- [DashScope](https://dashscope.console.aliyun.com/) (Tongyi)
-- [Volcengine](https://www.volcengine.com/) (Doubao)
 - [rembg](https://github.com/danielgatis/rembg)
+- [music21](https://web.mit.edu/music21/) / [symusic](https://github.com/Yikai-Liao/symusic)
