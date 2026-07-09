@@ -85,14 +85,19 @@ export class ImageComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.imageLoading.set(true);
 
+    const customConfig = this.settingService.getCustomImageConfig();
     const request: ImageEditRequest = {
       image_url: this.imageUrl,
       prompt: prompt,
       task_id: this.generationService.generateTaskId('img_edit'),
-      model_type: this.settingService.getActiveModel(),
+      model_type: 'custom',
       negative_prompt: this.negativePrompt || undefined,
       size: this.size,
       seed: this.seed || undefined,
+      custom_base_url: customConfig.baseUrl,
+      custom_api_key: customConfig.apiKey,
+      custom_model: customConfig.model,
+      api_key: customConfig.apiKey,
     };
 
     this.generationService.editImage(request).subscribe({
@@ -250,24 +255,19 @@ export class ImageComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.imageLoading.set(true);
 
-    const modelType = this.settingService.getActiveModel();
+    const customConfig = this.settingService.getCustomImageConfig();
     const request: ImageGenerationRequest = {
       prompt,
       negative_prompt: this.negativePrompt || undefined,
       size: this.size,
       seed: this.seed || undefined,
       task_id: this.generationService.generateTaskId('img'),
-      model_type: modelType,
+      model_type: 'custom',
+      custom_base_url: customConfig.baseUrl,
+      custom_api_key: customConfig.apiKey,
+      custom_model: customConfig.model,
+      api_key: customConfig.apiKey,
     };
-
-    // Inject custom API config if model type is custom
-    if (modelType === 'custom') {
-      const customConfig = this.settingService.getCustomImageConfig();
-      request.custom_base_url = customConfig.baseUrl;
-      request.custom_api_key = customConfig.apiKey;
-      request.custom_model = customConfig.model;
-      request.api_key = customConfig.apiKey;
-    }
 
     this.generationService.generateImage(request).subscribe({
       next: (result) => {

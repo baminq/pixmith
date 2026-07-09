@@ -59,7 +59,7 @@ class ImageGenerationRequest(BaseModel):
     seed: int = -1
     size: str = DEFAULT_IMAGE_SIZE
     task_id: Optional[str] = None
-    model_type: str = "tongyi"
+    model_type: str = "custom"
     # Custom API fields for OpenAI-compatible providers
     custom_base_url: Optional[str] = None
     custom_api_key: Optional[str] = None
@@ -77,7 +77,7 @@ class VideoGenerationRequest(BaseModel):
     negative_prompt: str = ""
     resolution: str = DEFAULT_VIDEO_RESOLUTION
     task_id: Optional[str] = None
-    model_type: str = "tongyi"
+    model_type: str = "custom"
     # Custom API fields for OpenAI-compatible providers
     custom_base_url: Optional[str] = None
     custom_api_key: Optional[str] = None
@@ -92,7 +92,7 @@ class MusicGenerationRequest(BaseModel):
     genre: str = "pop"
     tempo: str = "medium"
     task_id: Optional[str] = None
-    model_type: str = "tongyi"
+    model_type: str = "custom"
     # Custom API fields for OpenAI-compatible providers
     custom_base_url: Optional[str] = None
     custom_api_key: Optional[str] = None

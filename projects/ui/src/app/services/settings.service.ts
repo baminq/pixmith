@@ -22,54 +22,37 @@ const DEFAULT_CUSTOM_MUSIC_CONFIG: CustomAPIConfig = {
 };
 
 const DEFAULT_CUSTOM_VIDEO_CONFIG: CustomAPIConfig = {
-  name: 'Luma',
-  baseUrl: 'https://api.lumalabs.ai',
+  name: 'OpenAI',
+  baseUrl: 'https://api.openai.com/v1',
   apiKey: '',
   model: '',
 };
+
+/** Only OpenAI-compatible custom APIs are exposed in the UI. */
+export const ACTIVE_MODEL = 'custom';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SettingsService {
-  private readonly API_KEY_TONGYI_STORAGE_KEY = 'pixelda_tongyi_api_key';
-  private readonly API_KEY_DOUBAO_STORAGE_KEY = 'pixelda_doubao_api_key';
-  private readonly ACTIVE_API_KEY_STORAGE_KEY = 'pixelda_active_api_key';
   private readonly LANGUAGE_STORAGE_KEY = 'pixelda_language';
 
   private readonly CUSTOM_IMAGE_CONFIG_KEY = 'pixelda_custom_image_config';
   private readonly CUSTOM_MUSIC_CONFIG_KEY = 'pixelda_custom_music_config';
   private readonly CUSTOM_VIDEO_CONFIG_KEY = 'pixelda_custom_video_config';
 
-  private tongyiApiKeySignal = signal<string>('');
-  private doubaoApiKeySignal = signal<string>('');
-  private activeModel = signal<string>('tongyi');
   private languageSignal = signal<string>('en');
 
-  // Custom API configs
   private customImageConfigSignal = signal<CustomAPIConfig>({ ...DEFAULT_CUSTOM_IMAGE_CONFIG });
   private customMusicConfigSignal = signal<CustomAPIConfig>({ ...DEFAULT_CUSTOM_MUSIC_CONFIG });
   private customVideoConfigSignal = signal<CustomAPIConfig>({ ...DEFAULT_CUSTOM_VIDEO_CONFIG });
 
   constructor() {
-    const storedKey = localStorage.getItem(this.API_KEY_TONGYI_STORAGE_KEY);
-    if (storedKey) {
-      this.tongyiApiKeySignal.set(storedKey);
-    }
-    const storedDoubaoKey = localStorage.getItem(this.API_KEY_DOUBAO_STORAGE_KEY);
-    if (storedDoubaoKey) {
-      this.doubaoApiKeySignal.set(storedDoubaoKey);
-    }
-    const storedActive = localStorage.getItem(this.ACTIVE_API_KEY_STORAGE_KEY);
-    if (storedActive) {
-      this.activeModel.set(storedActive);
-    }
     const storedLanguage = localStorage.getItem(this.LANGUAGE_STORAGE_KEY);
     if (storedLanguage) {
       this.languageSignal.set(storedLanguage);
     }
 
-    // Load custom API configs
     this.loadCustomConfig(
       this.CUSTOM_IMAGE_CONFIG_KEY,
       this.customImageConfigSignal,
@@ -85,6 +68,9 @@ export class SettingsService {
       this.customVideoConfigSignal,
       DEFAULT_CUSTOM_VIDEO_CONFIG,
     );
+
+    // Force custom as the only active provider (migrate away from tongyi/doubao).
+    localStorage.setItem('pixelda_active_api_key', ACTIVE_MODEL);
   }
 
   private loadCustomConfig(
@@ -103,90 +89,34 @@ export class SettingsService {
     }
   }
 
-  readonly tongyiApiKey = this.tongyiApiKeySignal.asReadonly();
-  readonly doubaoApiKey = this.doubaoApiKeySignal.asReadonly();
-  readonly activeApiKey = this.activeModel.asReadonly();
   readonly language = this.languageSignal.asReadonly();
-
   readonly customImageConfig = this.customImageConfigSignal.asReadonly();
   readonly customMusicConfig = this.customMusicConfigSignal.asReadonly();
   readonly customVideoConfig = this.customVideoConfigSignal.asReadonly();
 
-  setTongyiApiKey(apiKey: string): void {
-    this.tongyiApiKeySignal.set(apiKey);
-    localStorage.setItem(this.API_KEY_TONGYI_STORAGE_KEY, apiKey);
-  }
-
-  setDoubaoApiKey(apiKey: string): void {
-    this.doubaoApiKeySignal.set(apiKey);
-    localStorage.setItem(this.API_KEY_DOUBAO_STORAGE_KEY, apiKey);
-  }
-
-  getTongyiApiKey(): string {
-    return this.tongyiApiKeySignal();
-  }
-
-  getDoubaoApiKey(): string {
-    return this.doubaoApiKeySignal();
-  }
-
-  setActiveApiKey(type: string): void {
-    this.activeModel.set(type);
-    localStorage.setItem(this.ACTIVE_API_KEY_STORAGE_KEY, type);
-  }
-
+  /** Always custom — Chinese providers are hidden. */
   getActiveModel(): string {
-    return this.activeModel();
-  }
-
-  getCurrentActiveApiKey(): string {
-    const active = this.activeModel();
-    if (active === 'doubao') {
-      return this.doubaoApiKeySignal();
-    } else if (active === 'custom') {
-      return this.customImageConfigSignal().apiKey;
-    }
-    return this.tongyiApiKeySignal();
-  }
-
-  clearTongyiApiKey(): void {
-    this.tongyiApiKeySignal.set('');
-    localStorage.removeItem(this.API_KEY_TONGYI_STORAGE_KEY);
-  }
-
-  clearDoubaoApiKey(): void {
-    this.doubaoApiKeySignal.set('');
-    localStorage.removeItem(this.API_KEY_DOUBAO_STORAGE_KEY);
-  }
-
-  hasTongyiApiKey(): boolean {
-    return this.tongyiApiKeySignal().length > 0;
-  }
-
-  hasDoubaoApiKey(): boolean {
-    return this.doubaoApiKeySignal().length > 0;
+    return ACTIVE_MODEL;
   }
 
   hasAnyApiKey(): boolean {
     return (
-      this.hasTongyiApiKey() ||
-      this.hasDoubaoApiKey() ||
       !!this.customImageConfigSignal().apiKey ||
       !!this.customMusicConfigSignal().apiKey ||
       !!this.customVideoConfigSignal().apiKey
     );
   }
 
-  getMaskedTongyiApiKey(): string {
-    const key = this.tongyiApiKeySignal();
-    if (!key) return '';
-    return '*'.repeat(12);
-  }
-
-  getMaskedDoubaoApiKey(): string {
-    const key = this.doubaoApiKeySignal();
-    if (!key) return '';
-    return '*'.repeat(12);
+  isCustomConfigured(type?: 'image' | 'music' | 'video'): boolean {
+    if (type) {
+      const config = this.getCustomConfigForType(type);
+      return !!(config.baseUrl && config.apiKey);
+    }
+    return (
+      this.isCustomConfigured('image') ||
+      this.isCustomConfigured('music') ||
+      this.isCustomConfigured('video')
+    );
   }
 
   setLanguage(language: string): void {
@@ -197,8 +127,6 @@ export class SettingsService {
   getLanguage(): string {
     return this.languageSignal();
   }
-
-  // Custom API config methods
 
   setCustomImageConfig(config: CustomAPIConfig): void {
     this.customImageConfigSignal.set(config);

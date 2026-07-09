@@ -1,26 +1,9 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { SettingsService } from '../services/settings.service';
 
+/**
+ * OpenAI-compatible custom APIs send credentials in the request body
+ * (custom_api_key / custom_base_url / custom_model), not via X-API-Key.
+ */
 export const apiKeyInterceptor: HttpInterceptorFn = (req, next) => {
-  const settingsService = inject(SettingsService);
-  const activeModel = settingsService.getActiveModel();
-
-  if (req.url.startsWith('/api') && settingsService.hasAnyApiKey()) {
-    // For custom API, don't send the stored Tongyi/Doubao key as header.
-    // Components will send custom config in the request body instead.
-    if (activeModel === 'custom') {
-      return next(req);
-    }
-
-    const apiKey = settingsService.getCurrentActiveApiKey();
-    const clonedRequest = req.clone({
-      setHeaders: {
-        'X-API-Key': apiKey,
-      },
-    });
-    return next(clonedRequest);
-  }
-
   return next(req);
 };

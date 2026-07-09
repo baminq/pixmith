@@ -13,20 +13,14 @@ import { TranslateModule } from '@ngx-translate/core';
   styleUrls: ['./settings.component.scss'],
 })
 export class SettingsComponent {
-  tongyiApiKeyInput = signal('');
-  doubaoApiKeyInput = signal('');
-  showTongyiApiKey = signal(false);
-  showDoubaoApiKey = signal(false);
-  activeApiKey = signal('tongyi');
   selectedLanguage = signal('en');
 
-  // Custom API form fields
   customImageName = signal('');
   customImageBaseUrl = signal('');
   customImageApiKey = signal('');
   customImageModel = signal('');
   showCustomImageApiKey = signal(false);
-  customImageExpanded = signal(false);
+  customImageExpanded = signal(true);
 
   customMusicName = signal('');
   customMusicBaseUrl = signal('');
@@ -46,12 +40,7 @@ export class SettingsComponent {
     public settingsService: SettingsService,
     private translationService: TranslationService,
   ) {
-    this.tongyiApiKeyInput.set(this.settingsService.getMaskedTongyiApiKey());
-    this.doubaoApiKeyInput.set(this.settingsService.getMaskedDoubaoApiKey());
-    this.activeApiKey.set(this.settingsService.getActiveModel());
     this.selectedLanguage.set(this.settingsService.getLanguage());
-
-    // Load custom API configs into form fields
     this.loadCustomFormData('image');
     this.loadCustomFormData('music');
     this.loadCustomFormData('video');
@@ -78,24 +67,6 @@ export class SettingsComponent {
         this.customVideoApiKey.set(this.settingsService.getMaskedKey(config.apiKey));
         this.customVideoModel.set(config.model);
         break;
-    }
-  }
-
-  toggleTongyiApiKeyVisibility(): void {
-    this.showTongyiApiKey.update((show) => !show);
-    if (this.showTongyiApiKey()) {
-      this.tongyiApiKeyInput.set(this.settingsService.getTongyiApiKey());
-    } else {
-      this.tongyiApiKeyInput.set(this.settingsService.getMaskedTongyiApiKey());
-    }
-  }
-
-  toggleDoubaoApiKeyVisibility(): void {
-    this.showDoubaoApiKey.update((show) => !show);
-    if (this.showDoubaoApiKey()) {
-      this.doubaoApiKeyInput.set(this.settingsService.getDoubaoApiKey());
-    } else {
-      this.doubaoApiKeyInput.set(this.settingsService.getMaskedDoubaoApiKey());
     }
   }
 
@@ -130,70 +101,6 @@ export class SettingsComponent {
         this.settingsService.getMaskedKey(this.settingsService.getCustomVideoConfig().apiKey),
       );
     }
-  }
-
-  saveApiKey(): void {
-    const currentInput = this.tongyiApiKeyInput();
-
-    let apiKeyToSave: string;
-
-    if (this.showTongyiApiKey()) {
-      apiKeyToSave = currentInput;
-    } else {
-      if (currentInput && !currentInput.includes('*')) {
-        apiKeyToSave = currentInput;
-      } else {
-        apiKeyToSave = this.settingsService.getTongyiApiKey() || currentInput;
-      }
-    }
-
-    if (apiKeyToSave && apiKeyToSave.trim()) {
-      this.settingsService.setTongyiApiKey(apiKeyToSave.trim());
-      this.tongyiApiKeyInput.set(this.settingsService.getMaskedTongyiApiKey());
-      this.showTongyiApiKey.set(false);
-    }
-  }
-
-  saveDoubaoApiKey(): void {
-    const currentInput = this.doubaoApiKeyInput();
-
-    let apiKeyToSave: string;
-
-    if (this.showDoubaoApiKey()) {
-      apiKeyToSave = currentInput;
-    } else {
-      if (currentInput && !currentInput.includes('*')) {
-        apiKeyToSave = currentInput;
-      } else {
-        apiKeyToSave = this.settingsService.getDoubaoApiKey() || currentInput;
-      }
-    }
-
-    if (apiKeyToSave && apiKeyToSave.trim()) {
-      this.settingsService.setDoubaoApiKey(apiKeyToSave.trim());
-      this.doubaoApiKeyInput.set(this.settingsService.getMaskedDoubaoApiKey());
-      this.showDoubaoApiKey.set(false);
-    }
-  }
-
-  clearTongyiApiKey(): void {
-    this.settingsService.clearTongyiApiKey();
-    this.tongyiApiKeyInput.set('');
-    this.showTongyiApiKey.set(false);
-  }
-
-  clearDoubaoApiKey(): void {
-    this.settingsService.clearDoubaoApiKey();
-    this.doubaoApiKeyInput.set('');
-    this.showDoubaoApiKey.set(false);
-  }
-
-  onApiKeyInputChange(value: string): void {
-    this.tongyiApiKeyInput.set(value);
-  }
-
-  onDoubaoApiKeyInputChange(value: string): void {
-    this.doubaoApiKeyInput.set(value);
   }
 
   saveCustomImageConfig(): void {
@@ -234,16 +141,19 @@ export class SettingsComponent {
 
   clearCustomImageConfig(): void {
     this.settingsService.clearCustomImageConfig();
+    this.loadCustomFormData('image');
     this.customImageApiKey.set('');
   }
 
   clearCustomMusicConfig(): void {
     this.settingsService.clearCustomMusicConfig();
+    this.loadCustomFormData('music');
     this.customMusicApiKey.set('');
   }
 
   clearCustomVideoConfig(): void {
     this.settingsService.clearCustomVideoConfig();
+    this.loadCustomFormData('video');
     this.customVideoApiKey.set('');
   }
 
@@ -272,21 +182,11 @@ export class SettingsComponent {
   }
 
   hasCustomApiConfig(type: 'image' | 'music' | 'video'): boolean {
-    const config = this.settingsService.getCustomConfigForType(type);
-    return !!(config.baseUrl && config.apiKey);
+    return this.settingsService.isCustomConfigured(type);
   }
 
   isCustomApiConfigured(): boolean {
-    return (
-      this.hasCustomApiConfig('image') ||
-      this.hasCustomApiConfig('music') ||
-      this.hasCustomApiConfig('video')
-    );
-  }
-
-  setActiveApiKey(type: string): void {
-    this.activeApiKey.set(type);
-    this.settingsService.setActiveApiKey(type);
+    return this.settingsService.isCustomConfigured();
   }
 
   getAvailableLanguages() {

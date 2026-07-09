@@ -1,21 +1,22 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os
-from logging.handlers import TimedRotatingFileHandler
-from fastapi.routing import APIRoute
-from services.utils.path import get_log_folder, get_cache_folder
-from routers.generation_router import router as generation_router
-
-
 import sys
-if sys.platform == 'win32':
+from logging.handlers import TimedRotatingFileHandler
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import APIRoute
+from fastapi.staticfiles import StaticFiles
+from routers.generation_router import router as generation_router
+from services.utils.path import get_cache_folder, get_log_folder
+
+if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
+
 
 def setup_logging():
     logs_dir = get_log_folder()
@@ -56,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
-    title="Pixmith Server"
+    title="Pixmith Server",
     version="1.0.0",
 )
 

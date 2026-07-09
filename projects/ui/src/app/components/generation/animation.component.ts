@@ -126,24 +126,19 @@ export class AnimationComponent implements OnInit, OnDestroy {
     this.errorMessage.set('');
     this.result.set(null);
 
-    const modelType = this.settingService.getActiveModel();
+    const customConfig = this.settingService.getCustomVideoConfig();
     const request: VideoGenerationRequest = {
       base_image_url: this.imageUrl(),
       prompt: 'pixel-art game animation, ' + this.prompt,
       negative_prompt: this.negativePrompt || undefined,
       resolution: this.resolution,
       task_id: this.generationService.generateTaskId('anim'),
-      model_type: modelType,
+      model_type: 'custom',
+      custom_base_url: customConfig.baseUrl,
+      custom_api_key: customConfig.apiKey,
+      custom_model: customConfig.model,
+      api_key: customConfig.apiKey,
     };
-
-    // Inject custom API config if model type is custom
-    if (modelType === 'custom') {
-      const customConfig = this.settingService.getCustomVideoConfig();
-      request.custom_base_url = customConfig.baseUrl;
-      request.custom_api_key = customConfig.apiKey;
-      request.custom_model = customConfig.model;
-      request.api_key = customConfig.apiKey;
-    }
 
     this.generationService.generateVideo(request).subscribe({
       next: (response: GenerationResponse) => {

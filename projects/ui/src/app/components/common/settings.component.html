@@ -19,187 +19,15 @@
         </div>
     </div>
 
-    <!-- ============ DOUBAO API ============ -->
-    <div class="setting-group">
-        <div class="section-header">
-            <div class="label-group">
-                <label for="doubaoApiKey">{{ 'SETTINGS.DOUBAO_API_KEY' | translate }}</label>
-                <span class="recommended-badge">{{ 'SETTINGS.RECOMMENDED' | translate }}</span>
-                <span class="price-icon">💰</span>
-                <div class="price-tooltip">
-                    <table class="price-table">
-                        <thead>
-                            <tr>
-                                <th>{{ 'SETTINGS.IMAGE_GENERATION_SHORT' | translate }}</th>
-                                <th>doubao-seedream-4-0-250828</th>
-                                <th>0.2 RMB/image</th>
-                            </tr>
-                            <tr>
-                                <th>{{ 'SETTINGS.VIDEO_GENERATION_SHORT' | translate }}</th>
-                                <th>doubao-seedance-1-0-pro-250528</th>
-                                <th>0.73 RMB/480p, 1.64 RMB/720p</th>
-                            </tr>
-                            <tr>
-                                <th>{{ 'SETTINGS.MUSIC_GENERATION_SHORT' | translate }}</th>
-                                <th>doubao-seed-1-6-251015</th>
-                                <th>0.0008 RMB/input k-token, 0.008 RMB/output k-token</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
-            </div>
-            <label class="checkbox-label">
-                <input
-                    type="checkbox"
-                    [checked]="activeApiKey() === 'doubao'"
-                    (change)="setActiveApiKey('doubao')"
-                    class="checkbox-input"
-                />
-                <span class="checkmark"></span>
-                {{ 'SETTINGS.ACTIVATE' | translate }}
-            </label>
-        </div>
-        <div class="api-key-input-group">
-            <input
-                id="doubaoApiKey"
-                [type]="showDoubaoApiKey() ? 'text' : 'password'"
-                [(ngModel)]="doubaoApiKeyInput"
-                (input)="onDoubaoApiKeyInputChange($any($event.target).value)"
-                [placeholder]="'SETTINGS.ENTER_DOUBAO_API_KEY' | translate"
-                class="api-key-input"
-            />
-            <button
-                type="button"
-                (click)="toggleDoubaoApiKeyVisibility()"
-                class="toggle-visibility-btn"
-                [title]="
-                    (showDoubaoApiKey() ? 'SETTINGS.HIDE_API_KEY' : 'SETTINGS.SHOW_API_KEY')
-                        | translate
-                "
-            >
-                {{ showDoubaoApiKey() ? '🙈' : '👁️' }}
-            </button>
-        </div>
-        <div class="button-group">
-            <button
-                type="button"
-                (click)="saveDoubaoApiKey()"
-                class="save-btn"
-                [disabled]="!doubaoApiKeyInput()"
-            >
-                {{ 'SETTINGS.SAVE' | translate }}
-            </button>
-            <button
-                type="button"
-                (click)="clearDoubaoApiKey()"
-                class="clear-btn"
-                [disabled]="!settingsService.hasDoubaoApiKey()"
-            >
-                {{ 'SETTINGS.CLEAR' | translate }}
-            </button>
-        </div>
-    </div>
-
-    <!-- ============ TONGYI API ============ -->
-    <div class="setting-group">
-        <div class="section-header">
-            <div class="label-group">
-                <label for="apiKey">{{ 'SETTINGS.TONGYI_API_KEY' | translate }}</label>
-                <span class="price-icon">💰</span>
-                <div class="price-tooltip">
-                    <table class="price-table">
-                        <thead>
-                            <tr>
-                                <th>{{ 'SETTINGS.IMAGE_GENERATION_SHORT' | translate }}</th>
-                                <th>wan2.5-t2i-preview</th>
-                                <th>0.2 RMB/image</th>
-                            </tr>
-                            <tr>
-                                <th>{{ 'SETTINGS.VIDEO_GENERATION_SHORT' | translate }}</th>
-                                <th>wan2.5-i2v-preview</th>
-                                <th>1.5 RMB/480p, 3 RMB/720p</th>
-                            </tr>
-                            <tr>
-                                <th>{{ 'SETTINGS.MUSIC_GENERATION_SHORT' | translate }}</th>
-                                <th>qwen-plus</th>
-                                <th>0.0008 RMB/input k-token, 0.008 RMB/output k-token</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
-            </div>
-            <label class="checkbox-label">
-                <input
-                    type="checkbox"
-                    [checked]="activeApiKey() === 'tongyi'"
-                    (change)="setActiveApiKey('tongyi')"
-                    class="checkbox-input"
-                />
-                <span class="checkmark"></span>
-                {{ 'SETTINGS.ACTIVATE' | translate }}
-            </label>
-        </div>
-        <div class="api-key-input-group">
-            <input
-                id="apiKey"
-                [type]="showTongyiApiKey() ? 'text' : 'password'"
-                [(ngModel)]="tongyiApiKeyInput"
-                (input)="onApiKeyInputChange($any($event.target).value)"
-                [placeholder]="'SETTINGS.ENTER_API_KEY' | translate"
-                class="api-key-input"
-            />
-            <button
-                type="button"
-                (click)="toggleTongyiApiKeyVisibility()"
-                class="toggle-visibility-btn"
-                [title]="
-                    (showTongyiApiKey() ? 'SETTINGS.HIDE_API_KEY' : 'SETTINGS.SHOW_API_KEY')
-                        | translate
-                "
-            >
-                {{ showTongyiApiKey() ? '🙈' : '👁️' }}
-            </button>
-        </div>
-        <div class="button-group">
-            <button
-                type="button"
-                (click)="saveApiKey()"
-                class="save-btn"
-                [disabled]="!tongyiApiKeyInput()"
-            >
-                {{ 'SETTINGS.SAVE' | translate }}
-            </button>
-            <button
-                type="button"
-                (click)="clearTongyiApiKey()"
-                class="clear-btn"
-                [disabled]="!settingsService.hasTongyiApiKey()"
-            >
-                {{ 'SETTINGS.CLEAR' | translate }}
-            </button>
-        </div>
-    </div>
-
-    <!-- ============ CUSTOM API SECTION ============ -->
+    <!-- ============ OPENAI-COMPATIBLE API ============ -->
     <div class="setting-group custom-api-section">
         <div class="section-header custom-api-header">
             <div class="label-group">
                 <label>🔌 {{ 'SETTINGS.CUSTOM_API' | translate }}</label>
-                <span class="recommended-badge new-badge">New</span>
             </div>
-            <label class="checkbox-label">
-                <input
-                    type="checkbox"
-                    [checked]="activeApiKey() === 'custom'"
-                    (change)="setActiveApiKey('custom')"
-                    class="checkbox-input"
-                />
-                <span class="checkmark"></span>
-                {{ 'SETTINGS.ACTIVATE' | translate }}
-            </label>
         </div>
         <p class="custom-api-desc">
-            Connect any OpenAI-compatible API for image, music, or video generation.
+            {{ 'SETTINGS.CUSTOM_API_DESC' | translate }}
         </p>
 
         <!-- Custom Image API -->
@@ -359,7 +187,7 @@
                     <input
                         type="text"
                         [(ngModel)]="customVideoBaseUrl"
-                        placeholder="https://api.lumalabs.ai"
+                        placeholder="https://api.openai.com/v1"
                         class="custom-input"
                     />
                 </div>
@@ -408,62 +236,17 @@
     </div>
 
     <!-- ============ STATUS ============ -->
-    <div
-        class="status-section"
-        *ngIf="
-            (activeApiKey() !== 'custom' &&
-                settingsService.hasAnyApiKey() &&
-                !(
-                    (activeApiKey() === 'tongyi' && !settingsService.hasTongyiApiKey()) ||
-                    (activeApiKey() === 'doubao' && !settingsService.hasDoubaoApiKey())
-                )) ||
-            (activeApiKey() === 'custom' && isCustomApiConfigured())
-        "
-    >
+    <div class="status-section" *ngIf="isCustomApiConfigured()">
         <div class="status-info">
             <span class="status-icon">✅</span>
             <span class="status-text">
                 {{ 'SETTINGS.API_KEYS_CONFIGURED' | translate }}
-                ({{ 'SETTINGS.ACTIVE' | translate }}:
-                <span *ngIf="activeApiKey() === 'tongyi'">{{ 'SETTINGS.TONGYI' | translate }}</span>
-                <span *ngIf="activeApiKey() === 'doubao'">{{ 'SETTINGS.DOUBAO' | translate }}</span>
-                <span *ngIf="activeApiKey() === 'custom'">{{
-                    'SETTINGS.CUSTOM_API_ACTIVE' | translate
-                }}</span
-                >)
+                ({{ 'SETTINGS.ACTIVE' | translate }}: {{ 'SETTINGS.CUSTOM_API_ACTIVE' | translate }})
             </span>
         </div>
     </div>
 
-    <div
-        class="status-section warning"
-        *ngIf="
-            (activeApiKey() === 'tongyi' && !settingsService.hasTongyiApiKey()) ||
-            (activeApiKey() === 'doubao' && !settingsService.hasDoubaoApiKey()) ||
-            (activeApiKey() === 'custom' && !isCustomApiConfigured())
-        "
-    >
-        <div class="status-info">
-            <span class="status-icon">⚠️</span>
-            <span class="status-text">
-                <span *ngIf="activeApiKey() === 'tongyi'">{{
-                    'SETTINGS.TONGYI_ACTIVE_NO_KEY' | translate
-                }}</span>
-                <span *ngIf="activeApiKey() === 'doubao'">{{
-                    'SETTINGS.DOUBAO_ACTIVE_NO_KEY' | translate
-                }}</span>
-                <span *ngIf="activeApiKey() === 'custom'">{{
-                    'SETTINGS.CUSTOM_API_NOT_CONFIGURED' | translate
-                }}</span>
-                >
-            </span>
-        </div>
-    </div>
-
-    <div
-        class="status-section warning"
-        *ngIf="!settingsService.hasAnyApiKey() && !isCustomApiConfigured()"
-    >
+    <div class="status-section warning" *ngIf="!isCustomApiConfigured()">
         <div class="status-info">
             <span class="status-icon">⚠️</span>
             <span class="status-text">{{ 'SETTINGS.NO_API_KEYS' | translate }}</span>

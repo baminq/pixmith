@@ -87,7 +87,7 @@ export class MusicComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.audioLoading.set(true);
 
-    const modelType = this.settingService.getActiveModel();
+    const customConfig = this.settingService.getCustomMusicConfig();
     const request: MusicGenerationRequest = {
       prompt,
       duration: this.duration,
@@ -95,17 +95,12 @@ export class MusicComponent implements OnInit, OnDestroy {
       tempo: this.tempo,
       seed: this.seed || undefined,
       task_id: this.generationService.generateTaskId('music'),
-      model_type: modelType,
+      model_type: 'custom',
+      custom_base_url: customConfig.baseUrl,
+      custom_api_key: customConfig.apiKey,
+      custom_model: customConfig.model,
+      api_key: customConfig.apiKey,
     };
-
-    // Inject custom API config if model type is custom
-    if (modelType === 'custom') {
-      const customConfig = this.settingService.getCustomMusicConfig();
-      request.custom_base_url = customConfig.baseUrl;
-      request.custom_api_key = customConfig.apiKey;
-      request.custom_model = customConfig.model;
-      request.api_key = customConfig.apiKey;
-    }
 
     this.generationService.generateMusic(request).subscribe({
       next: (result) => {
